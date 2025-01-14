@@ -36,6 +36,11 @@
       <artifactId>typepal</artifactId>
       <version>0.14.8</version>
     </dependency>
+    <dependency>
+      <groupId>org.rascalmpl</groupId>
+      <artifactId>rascal-lsp</artifactId>
+      <version>2.12.1</version>
+    </dependency>
   </dependencies>
 
   <build>
