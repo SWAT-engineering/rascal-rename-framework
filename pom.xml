@@ -43,7 +43,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
-        <version>3.8.0</version>
+        <version>3.13.0</version>
         <configuration>
           <compilerArgument>-parameters</compilerArgument> 
           <release>11</release>
@@ -52,7 +52,7 @@
       <plugin>
         <groupId>org.rascalmpl</groupId>
         <artifactId>rascal-maven-plugin</artifactId>
-        <version>0.8.2</version>
+        <version>0.28.9</version>
         <configuration>
           <errorsAsWarnings>true</errorsAsWarnings>
           <bin>${project.build.outputDirectory}</bin>
@@ -60,6 +60,22 @@
             <src>${project.basedir}/src/main/rascal</src>
           </srcs>
         </configuration>
+        <executions>
+          <execution>
+              <id>rename-framework-compile</id>
+              <phase>compile</phase>
+              <goals>
+                  <goal>compile</goal>
+              </goals>
+          </execution>
+          <execution>
+              <id>rename-framework-package</id>
+              <phase>prepare-package</phase>
+              <goals>
+                  <goal>package</goal>
+              </goals>
+          </execution>
+        </executions>
       </plugin>
     </plugins>
   </build>
