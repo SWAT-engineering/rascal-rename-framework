@@ -40,10 +40,19 @@ data Tree;
 
 alias RenameRequest = tuple[list[Tree] cursor, str newName, set[loc] workspaceFolders];
 
+data Role 
+    = field()
+    | variable()
+    ;
+
 data RenameState
     = initialRequest(RenameRequest r)
     | downstreamUsers(loc l, str newName)
+    | findDefinition(list[Tree] cursor, str newName)
+    | updateDefinition(loc decl, str newName)
+    | rename(Role role, loc decl, str newName)
     ;
+
 
 @memo{expireAfter(minutes=1), maximumSize(50)}
 Tree parseLoc(loc l) {
@@ -71,24 +80,22 @@ void initSolver(RenameSolver solver, RenameConfig config, RenameRequest req) {
     }
 
     loc currentModule = req.cursor[0].src.top;
-    solver.collectTModel(currentModule, renameByModel, initialRequest(req));
+    solver.collectTModel(currentModule, buildWorkList, findDefinition(req));
 }
 
-void renameByModel(initialRequest(RenameRequest req), TModel tm, RenameSolver solver) {
+void buildWorkList(findDefinition(RenameRequest req), TModel tm, RenameSolver solver) {
     println("Processing TModel \'<tm.modelName>\'");
 
     loc def = getDefLocation(tm, req.cursor);
 
-    // Register edit for definition name
-    solver.textEdit(replace(def, req.newName));
-
     if (!isLocalRename(tm, def)) {
         for (loc m <- possibleDownstreamUsers(solver, req.workspaceFolders, def)) {
-            solver.collectParseTree(m, renameByTree, downstreamUsers(def, req.newName));
+            solver.collectParseTree(m, renameByTree, rename(fieldRole(), def, req.newName));
         }
     }
+    solver.collectTModel(tm.loc, renameByModel, rename(fieldRole(), req.newName));
 
-    renameByModel(downstreamUsers(def, req.newName), tm, solver);
+    //renameByModel(downstreamUsers(def, req.newName), tm, solver);
 }
 
 void renameByModel(downstreamUsers(def, newName), TModel tm, RenameSolver solver) {

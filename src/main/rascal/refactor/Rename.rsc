@@ -38,6 +38,8 @@ import List;
 data TModel;
 data Tree;
 
+
+
 data RenameState;
 
 alias RenameResult = tuple[list[DocumentEdit], map[str, ChangeAnnotation], set[Message]];
@@ -45,7 +47,7 @@ alias RenameResult = tuple[list[DocumentEdit], map[str, ChangeAnnotation], set[M
 data RenameSolver(
         RenameResult() run = RenameResult() { fail; }
       , void(loc l, void(RenameState, Tree, RenameSolver) doWork, RenameState state) collectParseTree = void(loc _, void(RenameState, Tree, RenameSolver) _, RenameState _) { throw "Not implemented!"; }
-      , void(loc l, void(RenameState, TModel, RenameSolver) doWork, RenameState state) collectTModel = void(loc _, void(RenameState, TModel, RenameSolver) _, RenameState _) { throw "Not implemented!"; }
+      , void(value locOrTree, void(RenameState, TModel, RenameSolver) doWork, RenameState state) collectTModel = void(value _, void(RenameState, TModel, RenameSolver) _, RenameState _) { throw "Not implemented!"; }
       , void(Message) msg = void(Message _) { fail; }
       , void(DocumentEdit) documentEdit = void(DocumentEdit _) { fail; }
       , void(TextEdit) textEdit = void(TextEdit _) { fail; }
@@ -57,11 +59,12 @@ data RenameSolver(
 data RenameConfig
     = rconfig(
         Tree(loc) parseLoc
-      , TModel(loc) tmodelForLoc
+      , TModel(Tree) tmodelForTree
+      , TModel(loc) tmodelForLoc = TModel(loc l) { return tmodelForTree(parseLoc(l)); },
     );
 
 alias TreeTask = tuple[loc file, void(RenameState, Tree, RenameSolver) work, RenameState state];
-alias ModelTask = tuple[loc file, void(RenameState, TModel, RenameSolver) work, RenameState state];
+alias ModelTask = tuple[value locOrTree, void(RenameState, TModel, RenameSolver) work, RenameState state];
 
 @example{
     Consumer implements something like:
@@ -84,9 +87,13 @@ RenameSolver newSolverForConfig(RenameConfig config) {
         treeTasks += <l, doWork, state>;
     };
 
+    set[tuple[value l, RenameState]] modelsRequested = {};
     list[ModelTask] modelTasks = [];
-    solver.collectTModel = void(loc l, void(RenameState, TModel, RenameSolver) doWork, RenameState state) {
-        modelTasks += <l, doWork, state>;
+    solver.collectTModel = void(value l, void(RenameState, TModel, RenameSolver) doWork, RenameState state) {
+        if (<l, state> notin modelsDone) {
+            modelTasks += <l, doWork, state>;
+            modelsDone += <l, state>;
+        }
     };
 
     // REGISTER
@@ -134,8 +141,7 @@ RenameSolver newSolverForConfig(RenameConfig config) {
             println("<size(modelTasks)> model tasks remaining");
             while ([ModelTask mt, *remaining] := modelTasks) {
                 modelTasks = remaining;
-                TModel tm = config.tmodelForLoc(mt.file);
-                mt.work(mt.state, tm, solver);
+                mt.work(mt.state, calcModel(mt, config), solver);
             }
         }
 
@@ -146,6 +152,9 @@ RenameSolver newSolverForConfig(RenameConfig config) {
     return solver;
 }
 
+TModel calcModel(loc l, RenameConfig rm) = 
+default calcModel(value v) { throw "only ..."; }
+ 
 list[DocumentEdit] mergeTextEdits(list[DocumentEdit] edits) {
     // Only merge subqequent text edits to the same file.
     // Leave all other edits in the order in which they were registered
