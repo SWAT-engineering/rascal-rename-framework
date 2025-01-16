@@ -27,9 +27,9 @@ POSSIBILITY OF SUCH DAMAGE.
 @bootstrapParser
 module refactor::Rename
 
-extend refactor::TextEdits;
+import refactor::TextEdits;
 
-extend Message;
+import Message;
 import util::Reflective;
 
 import IO;

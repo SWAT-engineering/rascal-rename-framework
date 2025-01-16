@@ -26,7 +26,7 @@ POSSIBILITY OF SUCH DAMAGE.
 }
 module refactor::RenameTest
 
-import examples::pico::Rename;
+import refactor::Rename;
 
 test bool mergeNoTextEdits() =
     mergeTextEdits([]) == [];

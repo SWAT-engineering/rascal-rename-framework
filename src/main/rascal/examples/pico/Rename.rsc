@@ -27,11 +27,12 @@ POSSIBILITY OF SUCH DAMAGE.
 module examples::pico::Rename
 
 import examples::pico::Syntax;
-extend examples::pico::Checker;
+import examples::pico::Checker;
 
 import analysis::typepal::TModel;
 
-extend refactor::Rename;
+import refactor::Rename;
+import refactor::TextEdits;
 
 import Exception;
 import IO;

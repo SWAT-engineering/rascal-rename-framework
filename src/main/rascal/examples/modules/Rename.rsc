@@ -27,10 +27,11 @@ POSSIBILITY OF SUCH DAMAGE.
 
 module examples::modules::Rename
 
-extend examples::modules::Checker;
+import examples::modules::Checker;
 import examples::modules::Syntax;
 
-extend refactor::Rename;
+import refactor::Rename;
+import refactor::TextEdits;
 
 import Exception;
 import IO;
