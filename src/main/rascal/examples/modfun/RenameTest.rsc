@@ -24,10 +24,10 @@ CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGE.
 }
-module examples::pico::RenameTest
+module examples::modfun::RenameTest
 
-import examples::pico::Rename;
-import examples::pico::Syntax;
+import examples::modfun::Rename;
+import examples::modfun::Syntax;
 
 import refactor::TextEdits;
 
@@ -35,17 +35,19 @@ import util::LanguageServer; // computeFocusList
 
 import IO;
 import List;
-import Message;
 import ParseTree;
 import Set;
 import String;
 import util::FileSystem;
 
-tuple[list[DocumentEdit] edits, set[Message] msgs] basicRename(str newName = "foo", int line = 2, int col = 17) {
-    prog = parse(#start[Program], |lib://typepal/src/examples/pico/fac.pico|);
+tuple[list[DocumentEdit] edits, set[Message] msgs] basicRename(str modName, int line, int col, str newName = "foo") {
+    prog = parse(#start[ModFun], |project://rename-framework/src/main/rascal/examples/modfun/<modName>.mfun|);
     cursor = computeFocusList(prog, line, col);
-    return renamePico(cursor, newName);
+    return renameModules(cursor, newName);
 }
+
+list[int] sortedEditAmounts(list[DocumentEdit] edits) =
+    sort([size(e.edits) | e <- edits]);
 
 void checkNoErrors(set[Message] msgs) {
     if (m <- msgs, m is error) {
@@ -53,37 +55,26 @@ void checkNoErrors(set[Message] msgs) {
     }
 }
 
-test bool doesNotCrash() {
-    <edits, msgs> = basicRename();
+test bool moduleName() {
+    <edits, msgs> = basicRename("A", 1, 8, newName = "B");
+
     checkNoErrors(msgs);
-    return true;
+    return size(edits) == 2
+        && sortedEditAmounts(edits) == [1, 1];
 }
 
-test bool hasFiveChanges() {
-    <edits, msgs> = basicRename();
+test bool overloadedFunc() {
+    <edits, msgs> = basicRename("A", 2, 9);
+
     checkNoErrors(msgs);
-    return size(edits) == 1 && size(edits[0].edits) == 5;
+    return size(edits) == 2
+        && sortedEditAmounts(edits) == [1, 2];
 }
 
-test bool editsHaveLangthOfNameUnderCursor() {
-    <edits, msgs> = basicRename();
+test bool importedFunc() {
+    <edits, msgs> = basicRename("B", 3, 19);
+
     checkNoErrors(msgs);
-    for (changed(_, rs) <- edits, replace(loc l, _) <- rs) {
-        if (size("output") != l.length) return false;
-    }
-    return true;
-}
-
-test bool failsWithError() {
-    if (<_, {error(_, _), *_}> := basicRename(col = 26)) {
-        return true;
-    }
-    return false;
-}
-
-test bool invalidName() {
-    if (<_, {error(_, _), *_}> := basicRename(newName = "_foo")) {
-        return true;
-    }
-    return false;
+    return size(edits) == 2
+        && sortedEditAmounts(edits) == [1, 2];
 }
